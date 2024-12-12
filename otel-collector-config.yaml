@@ -8,17 +8,12 @@ receivers:
 
 processors:
   batch: {}
-  # attributes:
-  #   actions:
-  #     - action: upsert
-  #       key: trace_id
-  #       value: "{trace_id}"
 
 exporters:
   otlphttp:
-    endpoint: "https://.collect.observeinc.com/v2/otel"
+    endpoint: "https://api.collect.observeinc.com/v2/otel"
     headers:
-      authorization: "Bearer "
+      authorization: "Bearer token"
 
 service:
   pipelines:
