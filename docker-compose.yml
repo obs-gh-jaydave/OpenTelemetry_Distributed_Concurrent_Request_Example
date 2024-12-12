@@ -1,0 +1,73 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector:latest
+    container_name: otel-collector
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    networks:
+      - valhalla-network
+
+  api-valhalla:
+    build: ./api-valhalla
+    ports:
+      - "3000:3000"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+    depends_on:
+      - valhalla-sim
+    networks:
+      - valhalla-network
+
+  valhalla-sim:
+    build: ./valhalla-sim
+    ports:
+      - "3003:3003"
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+    - valhalla-network
+
+  loader:
+    build: ./loader
+    depends_on:
+      - api-valhalla
+    networks:
+      - valhalla-network
+
+  # ev-planner:
+  #   build: ./ev-planner
+  #   ports:
+  #     - "3001:3001"
+  #   environment:
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+  #     RUST_LOG: "ev_planner=trace"
+  #   depends_on:
+  #     - api-valhalla
+  #   networks:
+  #     - valhalla-network
+
+  # shard-proxy:
+  #   build: ./shard-proxy
+  #   ports:
+  #     - "3002:3002"
+  #   environment:
+  #     OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318/v1/traces"
+  #   depends_on:
+  #     - ev-planner
+  #   networks:
+  #     - valhalla-network
+
+networks:
+  valhalla-network:
+    driver: bridge
+
+
